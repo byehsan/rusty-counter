@@ -33,10 +33,10 @@ impl Counter {
         // Ensure the main file exists and initialize with "0" if not
         if !std::path::Path::new(&self.file_path).exists() {
             // Create and initialize the file with "0"
-            if let Err(err) = File::create(&self.file_path).and_then(|mut f| f.write_all(b"0")) {
+            if let Err(err) = File::create(&self.file_path) {
                 warn!("Failed to create and initialize main file {}: {}", self.file_path, err);
             } else {
-                info!("Main file created and initialized with '0': {}", self.file_path);
+                info!("Main file created: {}", self.file_path);
             }
         }
     
@@ -45,9 +45,14 @@ impl Counter {
             let mut reader = BufReader::new(file);
             let mut content = String::new();
             if reader.read_to_string(&mut content).is_ok() {
-                *value = content.trim().to_string(); // Trim to remove any trailing newlines or spaces
-                info!("Loaded value from main file: {}", *value);
-                return true;
+                // Try parsing the content as an i32
+                if let Ok(parsed_value) = content.trim().parse::<i32>() {
+                    *value = parsed_value.to_string();
+                    info!("Loaded value from main file: {}", *value);
+                    return true;
+                } else {
+                    warn!("Failed to parse value as i32 from main file, trying backup");
+                }
             } else {
                 warn!("Failed to read from main file, trying backup");
             }
@@ -70,6 +75,7 @@ impl Counter {
             if reader.read_to_string(&mut content).is_ok() {
                 *value = content.trim().to_string();
                 info!("Loaded value from backup file: {}", *value);
+                drop(value);
                 self.save(); // Save to main file if loaded from backup
                 return true;
             } else {
@@ -80,6 +86,7 @@ impl Counter {
         // Initialize to default if no file exists or if reading fails
         *value = "0".to_string();
         info!("Initialized value to default ('0')");
+        drop(value);
         self.save();
         false
     }
