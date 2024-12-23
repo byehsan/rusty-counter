@@ -1,15 +1,15 @@
 #[macro_use]
 extern crate rocket;
 
+use dotenv::dotenv;
 use std::sync::Arc;
 use std::time::Duration;
-use dotenv::dotenv;
 
 mod routes;
 mod storage;
 
+use log::{error, info, warn};
 use storage::{Config, Counter};
-use log::{info, warn, error};
 
 #[launch]
 fn rocket() -> _ {
@@ -34,7 +34,10 @@ fn rocket() -> _ {
     info!("Configuration loaded: {:?}", config);
 
     // Initialize Counter
-    let counter = Arc::new(Counter::new(&config.data_file_path, &config.backup_file_path));
+    let counter = Arc::new(Counter::new(
+        &config.data_file_path,
+        &config.backup_file_path,
+    ));
     if counter.load_or_initialize() {
         info!("Counter initialized successfully");
     } else {
@@ -44,14 +47,12 @@ fn rocket() -> _ {
     // Start backup thread
     let counter_clone = Arc::clone(&counter);
     let backup_duration = Duration::from_secs(config.backup_interval);
-    std::thread::spawn(move || {
-        loop {
-            std::thread::sleep(backup_duration);
-            if counter_clone.backup() {
-                info!("Backup successful");
-            } else {
-                error!("Backup failed");
-            }
+    std::thread::spawn(move || loop {
+        std::thread::sleep(backup_duration);
+        if counter_clone.backup() {
+            info!("Backup successful");
+        } else {
+            error!("Backup failed");
         }
     });
 
@@ -66,7 +67,10 @@ fn rocket() -> _ {
             .merge(("port", config.service_port)),
     )
     .manage(counter)
-    .mount("/", routes![routes::get_value, routes::increment, routes::decrement])
+    .mount(
+        "/",
+        routes![routes::get_value, routes::increment, routes::decrement],
+    )
 }
 
 /// Prints the help for the environment variables used in the application

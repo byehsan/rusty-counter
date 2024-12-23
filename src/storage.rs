@@ -1,8 +1,8 @@
+use log::{error, info, warn};
 use serde::Deserialize;
-use std::fs::{File, create_dir_all};
-use std::{env, io::Write, io::Read, io::BufReader};
-use log::{info, warn, error};
+use std::fs::{create_dir_all, File};
 use std::sync::Mutex;
+use std::{env, io::BufReader, io::Read, io::Write};
 pub struct Counter {
     value: std::sync::Mutex<String>,
     pub file_path: String,
@@ -22,24 +22,31 @@ impl Counter {
     // Load or initialize the file content
     pub fn load_or_initialize(&self) -> bool {
         let mut value = self.value.lock().unwrap();
-    
+
         // Ensure the directory exists
         if let Some(parent_dir) = std::path::Path::new(&self.file_path).parent() {
             if let Err(err) = create_dir_all(parent_dir) {
-                warn!("Failed to create directory {}: {}", parent_dir.display(), err);
+                warn!(
+                    "Failed to create directory {}: {}",
+                    parent_dir.display(),
+                    err
+                );
             }
         }
-    
+
         // Ensure the main file exists and initialize with "0" if not
         if !std::path::Path::new(&self.file_path).exists() {
             // Create and initialize the file with "0"
             if let Err(err) = File::create(&self.file_path) {
-                warn!("Failed to create and initialize main file {}: {}", self.file_path, err);
+                warn!(
+                    "Failed to create and initialize main file {}: {}",
+                    self.file_path, err
+                );
             } else {
                 info!("Main file created: {}", self.file_path);
             }
         }
-    
+
         // Try to open and read the main file as a string
         if let Ok(file) = File::open(&self.file_path) {
             let mut reader = BufReader::new(file);
@@ -57,17 +64,23 @@ impl Counter {
                 warn!("Failed to read from main file, trying backup");
             }
         }
-    
+
         // Ensure the backup file exists and initialize with "0" if not
         if !std::path::Path::new(&self.backup_path).exists() {
             // Create and initialize the backup file with "0"
             if let Err(err) = File::create(&self.backup_path).and_then(|mut f| f.write_all(b"0")) {
-                warn!("Failed to create and initialize backup file {}: {}", self.backup_path, err);
+                warn!(
+                    "Failed to create and initialize backup file {}: {}",
+                    self.backup_path, err
+                );
             } else {
-                info!("Backup file created and initialized with '0': {}", self.backup_path);
+                info!(
+                    "Backup file created and initialized with '0': {}",
+                    self.backup_path
+                );
             }
         }
-    
+
         // Try to open and read the backup file as a string
         if let Ok(backup_file) = File::open(&self.backup_path) {
             let mut reader = BufReader::new(backup_file);
@@ -82,7 +95,7 @@ impl Counter {
                 warn!("Failed to read from backup file");
             }
         }
-    
+
         // Initialize to default if no file exists or if reading fails
         *value = "0".to_string();
         info!("Initialized value to default ('0')");
@@ -140,7 +153,7 @@ impl Counter {
     fn save(&self) {
         let value = self.value.lock().unwrap().clone();
         info!("Attempting to save value: {}", value);
-    
+
         match File::create(&self.file_path) {
             Ok(mut file) => {
                 if file.write_all(value.as_bytes()).is_ok() {
@@ -150,7 +163,10 @@ impl Counter {
                 }
             }
             Err(err) => {
-                error!("Failed to create main file: {}. Error: {}", self.file_path, err);
+                error!(
+                    "Failed to create main file: {}. Error: {}",
+                    self.file_path, err
+                );
             }
         }
     }
@@ -168,8 +184,10 @@ pub struct Config {
 impl Config {
     pub fn from_env() -> Result<Self, std::env::VarError> {
         Ok(Self {
-            data_file_path: env::var("DATA_FILE_PATH").unwrap_or_else(|_| "./local_dir/data.bin".to_string()),
-            backup_file_path: env::var("BACKUP_FILE_PATH").unwrap_or_else(|_| "./local_dir/backup.bin".to_string()),
+            data_file_path: env::var("DATA_FILE_PATH")
+                .unwrap_or_else(|_| "./local_dir/data.bin".to_string()),
+            backup_file_path: env::var("BACKUP_FILE_PATH")
+                .unwrap_or_else(|_| "./local_dir/backup.bin".to_string()),
             backup_interval: env::var("BACKUP_INTERVAL")
                 .unwrap_or_else(|_| "3600".to_string())
                 .parse()
