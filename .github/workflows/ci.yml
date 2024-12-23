@@ -22,6 +22,7 @@ jobs:
       - name: Install dependencies
         run: |
           rustup update
+          cd rusty-counter
           cargo install --locked
 
       - name: Run tests
