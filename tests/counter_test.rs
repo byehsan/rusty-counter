@@ -28,7 +28,7 @@ fn test_initialize_counter_from_empty_file() {
     // Verify the counter's value
     assert_eq!(
         counter.get(),
-        "0",
+        0,
         "The counter value should be initialized to '0'"
     );
 }
@@ -59,7 +59,7 @@ fn test_initialize_counter_from_backup() {
     // Verify the counter's value
     assert_eq!(
         counter.get(),
-        "1234",
+        1234,
         "The counter value should be loaded from the backup file"
     );
 }
@@ -85,7 +85,7 @@ fn test_increment_and_decrement() {
     counter.increment();
     assert_eq!(
         counter.get(),
-        "1",
+        1,
         "The counter value should be '1' after incrementing"
     );
 
@@ -93,7 +93,7 @@ fn test_increment_and_decrement() {
     counter.decrement();
     assert_eq!(
         counter.get(),
-        "0",
+        0,
         "The counter value should be '0' after decrementing"
     );
 }
@@ -146,7 +146,7 @@ fn test_concurrent_increment_and_decrement() {
     // After 2000 increments and 500 decrements, the counter should be 1500
     assert_eq!(
         counter.get(),
-        "1500",
+        1500,
         "The counter value should be '1500' after concurrent operations"
     );
 }
@@ -174,7 +174,7 @@ fn test_corrupted_file() {
     // Verify the counter's value (it should load from the backup, which is empty in this case)
     assert_eq!(
         counter.get(),
-        "0",
+        0,
         "The counter value should be '0' after loading from backup"
     );
 }
