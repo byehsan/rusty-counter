@@ -27,7 +27,7 @@ jobs:
 
       - name: Package with Cargo
         run: |
-          cargo package --no-verify --exclude .github
+          cargo package
 
       - name: Get Package Name and Version
         id: get_package_info
