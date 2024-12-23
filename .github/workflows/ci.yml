@@ -18,12 +18,6 @@ jobs:
 
       - name: Set up Rust
         uses: moonrepo/setup-rust@v1.2.1
-        
-      - name: Install dependencies
-        run: |
-          rustup update
-          cd rusty-counter
-          cargo install --locked
 
       - name: Run tests
         run: cargo test --verbose
