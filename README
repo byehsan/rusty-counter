@@ -1,0 +1,128 @@
+# Rusty-Counter
+
+Rusty-Counter is a simple Rust-based backend service that maintains a counter value in a local directory, allowing increment and decrement operations via HTTP requests. It ensures persistence with a binary file format and supports regular backups to a secondary file.
+
+## Features
+- **Persistent Counter:** The counter value is saved in a binary file (`data.bin`) ascii encoding.
+- **Backup Support:** Regularly backs up the counter value to `backup.bin`.
+- **HTTP API:**
+  - `GET /get`: Retrieve the current counter value.
+  - `POST /increment`: Increment the counter.
+  - `POST /decrement`: Decrement the counter.
+- **Configuration:** Reads a configuration file (`config.json`) for backup interval settings.
+- **Self-Healing:** If the primary binary file is missing, it checks the backup file. If neither is available, it initializes the counter with a default value of `0`.
+
+## Requirements
+- Rust (latest stable version)
+- Docker (optional, for containerization)[WIP]
+- Rocket (web framework)
+
+## Source Tree Structure
+```
+.
+├── Cargo.toml          # Rust project dependencies
+├── Dockerfile          # Docker configuration for containerization
+├── tests               # Unit tests directory
+├── src
+│   ├── main.rs         # Main entry point for the application
+│   ├── routes.rs       # HTTP route handlers
+│   └── utils.rs        # Utility functions for file operations
+├── .env                # example configuration
+└── README           # Project documentation
+```
+
+## Setup Instructions
+
+Pretty self-explanatory :-)
+
+ ```bash
+   cargo build
+   cargo run
+   cargo test
+   cargo package
+ ```
+
+1. The backend runs on `http://127.0.0.1:8000` by default.
+
+### Configuration
+- Modify `.env` to change the configuration of the source
+
+### API Endpoints
+- **Get Current Value:**
+  ```
+  GET /get
+  ```
+  Response:
+  ```json
+  value : <current-counter-value>
+  ```
+
+- **Increment Counter:**
+  ```
+  POST /increment
+  ```
+  Response:
+  ```json
+  value : <new-counter-value>
+  ```
+
+- **Decrement Counter:**
+  ```
+  POST /decrement
+  ```
+  Response:
+  ```json
+  value : <new-counter-value>
+  ```
+
+### Running with Docker
+1. Build the Docker image:
+   ```bash
+   docker build -t rusty-counter .
+   ```
+
+2. Run the container:
+   ```bash
+   docker run -p 8000:8000 rusty-counter
+   ```
+
+3. Access the API at `http://127.0.0.1:8000`.
+
+### Scaling with Docker Compose
+1. Create a `docker-compose.yml` file as shown below:
+   ```yaml
+   version: '3.8'
+   services:
+     backend:
+       build: .
+       ports:
+         - "8000:8000"
+       volumes:
+         - ./local_dir:/app/local_dir
+         - ./config:/app/config
+   ```
+
+2. Start the service:
+   ```bash
+   docker-compose up
+   ```
+
+3. Scale the service:
+   ```bash
+   docker-compose up --scale backend=3
+   ```
+
+### Deploying to Production
+- Use container orchestration platforms like Kubernetes or AWS ECS.
+- Push the Docker image to a container registry.
+- Configure health checks and autoscaling policies for optimal performance.
+
+### Contribution
+Contributions are welcome! Please submit a pull request or open an issue for any enhancements or bug fixes.
+
+### License
+This project is licensed under the MIT License.
+
+### Author
+Developed by Ehsan Shaghaei.
+

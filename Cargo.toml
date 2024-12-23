@@ -1,0 +1,20 @@
+[package]
+name = "rusty-counter"
+version = "0.1.0"
+description = """
+Rusty-Counter is a simple Rust-based backend service that maintains a counter value in a local directory,
+allowing increment and decrement operations via HTTP requests. It ensures persistence with a binary file
+format and supports regular backups to a secondary file.
+"""
+license = "MIT"
+authors = ["Ehsan Shaghaei", "Ehsan Shaghaei <contact@byehsan.com>"]
+edition = "2021"
+repository = "https://github.com/byehsan/rusty-counter"
+
+[dependencies]
+rocket = { version = "0.5.0-rc.2", features = ["json"]}
+serde = { version = "1.0", features = ["derive"] }
+log = "0.4"
+env_logger = "0.11.6"
+dotenv = "0.15"
+tempfile = "3.5"
