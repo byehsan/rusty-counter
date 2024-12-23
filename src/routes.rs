@@ -1,21 +1,32 @@
-use rocket::State;
+use rocket::{get, post, serde::json::Json, State};
 use std::sync::Arc;
 
 use crate::storage::Counter;
 
+#[derive(serde::Serialize)]
+pub struct Response {
+    value: i32,
+}
+
 #[get("/get")]
-pub fn get_value(counter: &State<Arc<Counter>>) -> String {
-    format!("{}", counter.get())
+pub fn get_value(counter: &State<Arc<Counter>>) -> Json<Response> {
+    Json(Response {
+        value: counter.get(),
+    })
 }
 
 #[post("/increment")]
-pub fn increment(counter: &State<Arc<Counter>>) -> String {
+pub fn increment(counter: &State<Arc<Counter>>) -> Json<Response> {
     counter.increment();
-    format!("Incremented counter to {}", counter.get())
+    Json(Response {
+        value: counter.get(),
+    })
 }
 
 #[post("/decrement")]
-pub fn decrement(counter: &State<Arc<Counter>>) -> String {
+pub fn decrement(counter: &State<Arc<Counter>>) -> Json<Response> {
     counter.decrement();
-    format!("Incremented counter to {}", counter.get())
+    Json(Response {
+        value: counter.get(),
+    })
 }

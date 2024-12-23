@@ -123,10 +123,10 @@ impl Counter {
     }
 
     // Get the current value
-    pub fn get(&self) -> String {
+    pub fn get(&self) -> i32 {
         let value = self.value.lock().unwrap().clone();
         info!("Retrieved value: {}", value);
-        value
+        value.parse::<i32>().unwrap_or(0)
     }
 
     // Backup the current value to the backup file
