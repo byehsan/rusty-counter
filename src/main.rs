@@ -3,6 +3,7 @@ extern crate rocket;
 
 use std::sync::Arc;
 use std::time::Duration;
+use dotenv::dotenv;
 
 mod routes;
 mod storage;
@@ -15,8 +16,20 @@ fn rocket() -> _ {
     // Initialize the logger
     env_logger::init();
 
+    // Load environment variables from .env file
+    dotenv().ok();
+
+    // Print help for .env variables
+    print_env_help();
+
     // Load configuration from environment variables into a Config struct
-    let config = Config::from_env().expect("Failed to load configuration");
+    let config = match Config::from_env() {
+        Ok(c) => c,
+        Err(err) => {
+            error!("Failed to load configuration: {}", err);
+            std::process::exit(1); // Exit the application if config loading fails
+        }
+    };
 
     info!("Configuration loaded: {:?}", config);
 
@@ -54,4 +67,14 @@ fn rocket() -> _ {
     )
     .manage(counter)
     .mount("/", routes![routes::get_value, routes::increment, routes::decrement])
+}
+
+/// Prints the help for the environment variables used in the application
+fn print_env_help() {
+    println!("\nEnvironment Variables:");
+    println!("DATA_FILE_PATH: The path to the data file (default: './local_dir/data.bin')");
+    println!("BACKUP_FILE_PATH: The path to the backup file (default: './local_dir/backup.bin')");
+    println!("BACKUP_INTERVAL: The interval for backup in seconds (default: 5)");
+    println!("SERVICE_IP: The IP address of the service (default: '127.0.0.1')");
+    println!("SERVICE_PORT: The port of the service (default: '8000')");
 }

@@ -9,13 +9,13 @@ pub fn get_value(counter: &State<Arc<Counter>>) -> String {
 }
 
 #[post("/increment")]
-pub fn increment(counter: &State<Arc<Counter>>) -> &'static str {
+pub fn increment(counter: &State<Arc<Counter>>) -> String {
     counter.increment();
-    "Incremented"
+    format!("Incremented counter to {}", counter.get())
 }
 
 #[post("/decrement")]
-pub fn decrement(counter: &State<Arc<Counter>>) -> &'static str {
+pub fn decrement(counter: &State<Arc<Counter>>) -> String {
     counter.decrement();
-    "Decremented"
+    format!("Incremented counter to {}", counter.get())
 }

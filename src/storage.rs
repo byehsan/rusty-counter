@@ -1,46 +1,51 @@
 use serde::Deserialize;
-use std::{env, io::Write, io::Read};
+use std::fs::{File, create_dir_all};
+use std::{env, io::Write, io::Read, io::BufReader};
 use log::{info, warn, error};
-
+use std::sync::Mutex;
 pub struct Counter {
-    value: std::sync::Mutex<i32>,
+    value: std::sync::Mutex<String>,
     pub file_path: String,
     pub backup_path: String,
 }
 
 impl Counter {
+    // Constructor
     pub fn new(file_path: &str, backup_path: &str) -> Self {
         Self {
-            value: std::sync::Mutex::new(0),
+            value: Mutex::new("0".to_string()), // Default value as a string
             file_path: file_path.to_string(),
             backup_path: backup_path.to_string(),
         }
     }
 
+    // Load or initialize the file content
     pub fn load_or_initialize(&self) -> bool {
         let mut value = self.value.lock().unwrap();
     
         // Ensure the directory exists
         if let Some(parent_dir) = std::path::Path::new(&self.file_path).parent() {
-            if let Err(err) = std::fs::create_dir_all(parent_dir) {
+            if let Err(err) = create_dir_all(parent_dir) {
                 warn!("Failed to create directory {}: {}", parent_dir.display(), err);
             }
         }
     
-        // Ensure the main file exists
+        // Ensure the main file exists and initialize with "0" if not
         if !std::path::Path::new(&self.file_path).exists() {
-            if let Err(err) = std::fs::File::create(&self.file_path) {
-                warn!("Failed to create main file {}: {}", self.file_path, err);
+            // Create and initialize the file with "0"
+            if let Err(err) = File::create(&self.file_path).and_then(|mut f| f.write_all(b"0")) {
+                warn!("Failed to create and initialize main file {}: {}", self.file_path, err);
             } else {
-                info!("Main file created: {}", self.file_path);
+                info!("Main file created and initialized with '0': {}", self.file_path);
             }
         }
     
-        // Try to open and read the main file
-        if let Ok(mut file) = std::fs::File::open(&self.file_path) {
-            let mut buffer = [0u8; 4];
-            if file.read_exact(&mut buffer).is_ok() {
-                *value = i32::from_be_bytes(buffer);
+        // Try to open and read the main file as a string
+        if let Ok(file) = File::open(&self.file_path) {
+            let mut reader = BufReader::new(file);
+            let mut content = String::new();
+            if reader.read_to_string(&mut content).is_ok() {
+                *value = content.trim().to_string(); // Trim to remove any trailing newlines or spaces
                 info!("Loaded value from main file: {}", *value);
                 return true;
             } else {
@@ -48,20 +53,22 @@ impl Counter {
             }
         }
     
-        // Ensure the backup file exists
+        // Ensure the backup file exists and initialize with "0" if not
         if !std::path::Path::new(&self.backup_path).exists() {
-            if let Err(err) = std::fs::File::create(&self.backup_path) {
-                warn!("Failed to create backup file {}: {}", self.backup_path, err);
+            // Create and initialize the backup file with "0"
+            if let Err(err) = File::create(&self.backup_path).and_then(|mut f| f.write_all(b"0")) {
+                warn!("Failed to create and initialize backup file {}: {}", self.backup_path, err);
             } else {
-                info!("Backup file created: {}", self.backup_path);
+                info!("Backup file created and initialized with '0': {}", self.backup_path);
             }
         }
     
-        // Try to open and read the backup file
-        if let Ok(mut backup_file) = std::fs::File::open(&self.backup_path) {
-            let mut buffer = [0u8; 4];
-            if backup_file.read_exact(&mut buffer).is_ok() {
-                *value = i32::from_be_bytes(buffer);
+        // Try to open and read the backup file as a string
+        if let Ok(backup_file) = File::open(&self.backup_path) {
+            let mut reader = BufReader::new(backup_file);
+            let mut content = String::new();
+            if reader.read_to_string(&mut content).is_ok() {
+                *value = content.trim().to_string();
                 info!("Loaded value from backup file: {}", *value);
                 self.save(); // Save to main file if loaded from backup
                 return true;
@@ -70,40 +77,44 @@ impl Counter {
             }
         }
     
-        // Initialize to default if no file exists
-        *value = 0;
-        info!("Initialized value to default (0)");
+        // Initialize to default if no file exists or if reading fails
+        *value = "0".to_string();
+        info!("Initialized value to default ('0')");
         self.save();
         false
     }
-    
-    
 
+    // Increment the counter
     pub fn increment(&self) {
         let mut value = self.value.lock().unwrap();
-        *value += 1;
+        *value = (value.parse::<i32>().unwrap_or(0) + 1).to_string(); // Increment the value
         info!("Incremented value to: {}", *value);
+        drop(value);
         self.save();
     }
 
+    // Decrement the counter
     pub fn decrement(&self) {
         let mut value = self.value.lock().unwrap();
-        *value -= 1;
+        *value = (value.parse::<i32>().unwrap_or(0) - 1).to_string(); // Decrement the value
         info!("Decremented value to: {}", *value);
+        drop(value);
         self.save();
     }
 
-    pub fn get(&self) -> i32 {
-        let value = *self.value.lock().unwrap();
+    // Get the current value
+    pub fn get(&self) -> String {
+        let value = self.value.lock().unwrap().clone();
         info!("Retrieved value: {}", value);
         value
     }
 
+    // Backup the current value to the backup file
     pub fn backup(&self) -> bool {
-        let value = *self.value.lock().unwrap();
-        match std::fs::File::create(&self.backup_path) {
+        let value = self.value.lock().unwrap().clone();
+        match File::create(&self.backup_path) {
             Ok(mut file) => {
-                if file.write_all(&value.to_be_bytes()).is_ok() {
+                if file.write_all(value.as_bytes()).is_ok() {
                     info!("Backup saved to {}", self.backup_path);
                     true
                 } else {
@@ -117,13 +128,15 @@ impl Counter {
             }
         }
     }
+
+    // Save the current value to the main file
     fn save(&self) {
-        let value = *self.value.lock().unwrap();
+        let value = self.value.lock().unwrap().clone();
         info!("Attempting to save value: {}", value);
     
-        match std::fs::File::create(&self.file_path) {
+        match File::create(&self.file_path) {
             Ok(mut file) => {
-                if file.write_all(&value.to_be_bytes()).is_ok() {
+                if file.write_all(value.as_bytes()).is_ok() {
                     info!("Value saved to {}", self.file_path);
                 } else {
                     error!("Failed to write to main file: {}", self.file_path);
@@ -134,7 +147,6 @@ impl Counter {
             }
         }
     }
-    
 }
 
 #[derive(Debug, Deserialize)]
@@ -152,12 +164,12 @@ impl Config {
             data_file_path: env::var("DATA_FILE_PATH").unwrap_or_else(|_| "./local_dir/data.bin".to_string()),
             backup_file_path: env::var("BACKUP_FILE_PATH").unwrap_or_else(|_| "./local_dir/backup.bin".to_string()),
             backup_interval: env::var("BACKUP_INTERVAL")
-                .unwrap_or_else(|_| "5".to_string())
+                .unwrap_or_else(|_| "3600".to_string())
                 .parse()
                 .expect("Invalid BACKUP_INTERVAL value"),
             service_ip: env::var("SERVICE_IP").unwrap_or_else(|_| "127.0.0.1".to_string()),
             service_port: env::var("SERVICE_PORT")
-                .unwrap_or_else(|_| "8000".to_string())
+                .unwrap_or_else(|_| "8080".to_string())
                 .parse()
                 .expect("Invalid SERVICE_PORT value"),
         })
