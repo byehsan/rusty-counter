@@ -57,16 +57,20 @@ jobs:
       # - name: Clean up Docker images
       #   run: docker system prune -f
 
-      # Create a GitHub release and upload the built package
-      - name: Create Release
-        id: create_release
-        uses: softprops/action-gh-release@v1
-        with:
-          files: ./target/release/rusty-counter
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      # # Optional: Clean up and remove intermediate Docker files to keep the environment clean
+      # Upload the build artifact (binary file)
+      - name: Upload a Build Artifact
+        uses: actions/upload-artifact@v4.5.0
+        with:
+          name: rusty-counter-${{ github.sha }}  # Use commit SHA for versioning
+          path: ./target/release/rusty-counter  # Path to the built binary
+          if-no-files-found: error  # Fail the action if no file is found
+          retention-days: 30  # Set artifact retention period (30 days)
+          compression-level: 6  # Default compression level (good balance of speed and size)
+          overwrite: true  # Overwrite existing artifact with the same name
+          include-hidden-files: false  # Do not include hidden files
+
+
       # - name: Clean up Docker environment
       #   run: |
       #     docker rmi rust-app
