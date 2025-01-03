@@ -13,11 +13,15 @@ use storage::{Config, Counter};
 
 #[launch]
 fn rocket() -> _ {
+    // Load environment variables from .env file
+    match dotenv() {
+        Ok(_) => println!("Successfully loaded .env file"),
+        Err(_) => println!("Failed to load .env file"),
+    }
+
     // Initialize the logger
     env_logger::init();
 
-    // Load environment variables from .env file
-    dotenv().ok();
 
     // Print help for .env variables
     print_env_help();
